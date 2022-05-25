@@ -26,7 +26,8 @@
     margin-left: calc(100% - 240px);
     padding: 10px;
     background-color: #f8e896;
-    width: 200px;
+    min-width: 200px;
+    width: auto;
     height: auto;
     min-height: 30px;
     text-align: left;

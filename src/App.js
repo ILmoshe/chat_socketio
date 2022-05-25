@@ -1,6 +1,6 @@
 import "./styles.css";
 import { ChatItem } from "./chatItem";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Avatar, Button, Divider, Paper } from "@mui/material";
 import { TextField } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
@@ -65,6 +65,7 @@ export default function App() {
       date: new Date().toLocaleTimeString(),
     };
     setTexts((old) => [...old, newMsg]);
+    setMsg("");
   };
 
   return (
