@@ -10,10 +10,15 @@ import { styled } from "@mui/material/styles";
 import Badge from "@mui/material/Badge";
 import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
 
+import { io } from "socket.io-client";
+
+
 const MAX = 9999999;
 const MIN = 1;
 
 const SENDERID = 11;
+
+const ROOM = "1234";
 
 const TEXT = [
   { id: 1, senderId: 12, body: "Hello my name is moshe", date: "14:07:18" },
@@ -22,6 +27,26 @@ const TEXT = [
   { id: 4, senderId: 12, body: "Hello my name is moshe", date: "14:07:18" },
   { id: 5, senderId: 12, body: "Hello my name is moshe", date: "14:07:18" },
 ];
+
+function makeid(length) {
+  var result = "";
+  var characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  var charactersLength = characters.length;
+  for (var i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  return result;
+}
+const socket = io("ws://127.0.0.1:8000/", {
+  path: "/ws/socket.io",
+  autoConnect: false,
+});
+socket.connect();
+socket.on("insure_connection", (e) => console.log("Received", e));
+
+socket.emit("join", { room: ROOM, name: makeid(5), isHost: false });
+socket.on("join_response", (e) => console.log(e));
+
 
 const StyledBadge = styled(Badge)(({ theme }) => ({
   "& .MuiBadge-badge": {
@@ -54,7 +79,11 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
 
 export default function App() {
   const [texts, setTexts] = useState(TEXT);
-  const [msg, setMsg] = useState();
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    socket.on("my_message", (e) => setTexts((old) => [...old, e]));
+  }, [socket]);
 
   const handleClick = (event) => {
     const randomNumber = Math.floor(Math.random() * (MAX - MIN + 1)) + MIN;
@@ -63,8 +92,11 @@ export default function App() {
       senderId: SENDERID,
       body: msg,
       date: new Date().toLocaleTimeString(),
+      room:ROOM
     };
+    socket.emit("my_message", newMsg);
     setTexts((old) => [...old, newMsg]);
+    console.log(newMsg);
     setMsg("");
   };
 
