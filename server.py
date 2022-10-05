@@ -21,7 +21,6 @@ async def connect(sid, environ, auth):
     await sio.emit("insure_connection", f"connected sid: {sid}", room=sid)
 
 
-
 @sio.event
 async def join(sid, data):
     print(f"sid:{sid}\ndata:{data}")

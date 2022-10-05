@@ -1,6 +1,6 @@
 import "./styles.css";
 import { ChatItem } from "./chatItem";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Avatar, Button, Divider, Paper } from "@mui/material";
 import { TextField } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
@@ -11,7 +11,6 @@ import Badge from "@mui/material/Badge";
 import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
 
 import { io } from "socket.io-client";
-
 
 const MAX = 9999999;
 const MIN = 1;
@@ -37,16 +36,6 @@ function makeid(length) {
   }
   return result;
 }
-const socket = io("ws://127.0.0.1:8000/", {
-  path: "/ws/socket.io",
-  autoConnect: false,
-});
-socket.connect();
-socket.on("insure_connection", (e) => console.log("Received", e));
-
-socket.emit("join", { room: ROOM, name: makeid(5), isHost: false });
-socket.on("join_response", (e) => console.log(e));
-
 
 const StyledBadge = styled(Badge)(({ theme }) => ({
   "& .MuiBadge-badge": {
@@ -80,19 +69,51 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
 export default function App() {
   const [texts, setTexts] = useState(TEXT);
   const [msg, setMsg] = useState("");
+  const globSocket = useRef(
+    io("ws://127.0.0.1:8000/", {
+      path: "/ws/socket.io",
+      autoConnect: false,
+    })
+  );
 
   useEffect(() => {
+    const socket = globSocket.current;
+
+    socket.connect();
+    socket.emit("join", {
+      room: ROOM,
+      name: makeid(5),
+      isHost: false,
+    });
+    return () => {
+      socket.off("disconnect");
+    };
+  }, []);
+
+  useEffect(() => {
+    const socket = globSocket.current;
+
     socket.on("my_message", (e) => setTexts((old) => [...old, e]));
-  }, [socket]);
+    socket.on("insure_connection", (e) => console.log("Received", e));
+    socket.on("join_response", (e) => console.log(e));
+  }, [globSocket]);
+
+  //TODO : maybe nice transition
+  useEffect(() => {
+    let messageBody = document.querySelector('#message-window');
+    messageBody.scrollTop = messageBody.scrollHeight - messageBody.clientHeight;
+  }, [texts]);
 
   const handleClick = (event) => {
+    const socket = globSocket.current;
+
     const randomNumber = Math.floor(Math.random() * (MAX - MIN + 1)) + MIN;
     const newMsg = {
       id: randomNumber,
       senderId: SENDERID,
       body: msg,
       date: new Date().toLocaleTimeString(),
-      room:ROOM
+      room: ROOM,
     };
     socket.emit("my_message", newMsg);
     setTexts((old) => [...old, newMsg]);
@@ -101,7 +122,7 @@ export default function App() {
   };
 
   return (
-    <div
+    <div 
       style={{
         boxShadow: "rgba(100, 100, 111, 0.2) 0px 7px 29px 0px",
         borderRadius: "20px",
@@ -138,6 +159,7 @@ export default function App() {
           overflowX: "hidden",
         }}
         className="App"
+        id="message-window"
       >
         {texts.map((val, index) => (
           <ChatItem
