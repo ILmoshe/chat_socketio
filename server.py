@@ -11,7 +11,6 @@ app = FastAPI()
 sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
 sio_app = socketio.ASGIApp(socketio_server=sio)
 
-# app.mount("/", socket_app)  # Here we mount socket app to main fastapi app
 app.mount("/ws", sio_app)
 
 

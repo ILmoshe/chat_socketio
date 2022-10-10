@@ -12,29 +12,16 @@ import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
 
 import { io } from "socket.io-client";
 
-const MAX = 9999999;
-const MIN = 1;
-
 const SENDERID = 11;
 
-const ROOM = "1234";
-
-const TEXT = [
-  { id: 1, senderId: 12, body: "Hello my name is moshe", date: "14:07:18" },
-  { id: 2, senderId: 12, body: "Hello my name is moshe", date: "14:07:18" },
-  { id: 3, senderId: 11, body: "Hello my name is David", date: "14:07:18" },
-  { id: 4, senderId: 12, body: "Hello my name is moshe", date: "14:07:18" },
-  { id: 5, senderId: 12, body: "Hello my name is moshe", date: "14:07:18" },
-];
-
-function makeid(length) {
-  var result = "";
-  var characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  var charactersLength = characters.length;
+function makeid(length = 5) {
+  let result = "";
+  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const charactersLength = characters.length;
   for (var i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
-  return result;
+  return String(result);
 }
 
 const StyledBadge = styled(Badge)(({ theme }) => ({
@@ -67,8 +54,11 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
 }));
 
 export default function App() {
-  const [texts, setTexts] = useState(TEXT);
+  const [texts, setTexts] = useState([]);
   const [msg, setMsg] = useState("");
+  const [room, setRoom] = useState(0);
+  const [isRoomPicked, setIsRoomPicked] = useState(false);
+
   const globSocket = useRef(
     io("ws://127.0.0.1:8000/", {
       path: "/ws/socket.io",
@@ -78,13 +68,8 @@ export default function App() {
 
   useEffect(() => {
     const socket = globSocket.current;
-
     socket.connect();
-    socket.emit("join", {
-      room: ROOM,
-      name: makeid(5),
-      isHost: false,
-    });
+
     return () => {
       socket.off("disconnect");
     };
@@ -98,31 +83,40 @@ export default function App() {
     socket.on("join_response", (e) => console.log(e));
   }, [globSocket]);
 
-  //TODO : maybe nice transition
   useEffect(() => {
-    let messageBody = document.querySelector('#message-window');
+    if (room === 0) return;
+    let messageBody = document.querySelector("#message-window");
     messageBody.scrollTop = messageBody.scrollHeight - messageBody.clientHeight;
   }, [texts]);
+
+  useEffect(() => {
+    const socket = globSocket.current;
+
+    if (isRoomPicked) {
+      socket.emit("join", {
+        room: room,
+        name: makeid(),
+        isHost: false,
+      });
+    }
+  }, [isRoomPicked]);
 
   const handleClick = (event) => {
     const socket = globSocket.current;
 
-    const randomNumber = Math.floor(Math.random() * (MAX - MIN + 1)) + MIN;
     const newMsg = {
-      id: randomNumber,
       senderId: SENDERID,
       body: msg,
       date: new Date().toLocaleTimeString(),
-      room: ROOM,
+      room: room,
     };
     socket.emit("my_message", newMsg);
     setTexts((old) => [...old, newMsg]);
     console.log(newMsg);
     setMsg("");
   };
-
-  return (
-    <div 
+  const messageBody = (
+    <div
       style={{
         boxShadow: "rgba(100, 100, 111, 0.2) 0px 7px 29px 0px",
         borderRadius: "20px",
@@ -216,4 +210,30 @@ export default function App() {
       </div>
     </div>
   );
+
+  const pickRoom = (
+    <div style={{ margin: 2 }}>
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <TextField
+          sx={{ m: 4 }}
+          label="Room id"
+          placeholder="PICK ROOM"
+          value={room}
+          onChange={(e) => setRoom(e.target.value)}
+        />
+      </div>
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <Button
+          variant="contained"
+          size="large"
+          type="submit"
+          onClick={() => setIsRoomPicked(true)}
+        >
+          pick
+        </Button>
+      </div>
+    </div>
+  );
+
+  return <>{isRoomPicked ? messageBody : pickRoom}</>;
 }
