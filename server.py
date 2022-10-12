@@ -17,7 +17,7 @@ app.mount("/ws", sio_app)
 @sio.event
 async def connect(sid, environ, auth):
     print("connect ", sid)
-    await sio.emit("insure_connection", f"connected sid: {sid}", room=sid)
+    await sio.emit("insure_connection", f"{sid}", room=sid)
 
 
 @sio.event
@@ -39,6 +39,6 @@ async def disconnect(sid):
 
 
 if __name__ == "__main__":
-    kwargs = {"host": "0.0.0.0", "port": 8000}
+    kwargs = {"host": "0.0.0.0", "port": 8001}
     kwargs.update({"debug": True, "reload": True})
     uvicorn.run("server:app", **kwargs)
